@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlforge-model-serving
+  namespace: mlforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlforge-model-serving
+  template:
+    metadata:
+      labels:
+        app: mlforge-model-serving
+    spec:
+      containers:
+        - name: model-serving
+          image: mlforge-backend:local
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: mlforge-config
+            - secretRef:
+                name: mlforge-secrets
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlforge-model-serving
+  namespace: mlforge
+spec:
+  selector:
+    app: mlforge-model-serving
+  ports:
+    - port: 8000
+      targetPort: 8000

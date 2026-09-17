@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Lint
+        run: ruff check ml backend tests || true
+      - name: Unit tests
+        env:
+          DATABASE_URL: sqlite:///./test_mlforge.db
+          MLFLOW_TRACKING_URI: file:./mlruns
+          API_KEY: test-key
+        run: pytest -q
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install and build
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t mlforge-backend:ci .
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t mlforge-frontend:ci frontend

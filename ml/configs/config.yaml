@@ -1,0 +1,73 @@
+project:
+  name: mlforge
+  experiment_name: customer-churn-classification
+  registered_model_name: churn-model
+  random_seed: 42
+
+data:
+  raw_path: ml/data/raw/telco_churn.csv
+  processed_dir: ml/data/processed
+  target_column: Churn
+  id_column: customerID
+  test_size: 0.20
+  val_size: 0.10
+  positive_label: "Yes"
+
+features:
+  numerical:
+    - tenure
+    - MonthlyCharges
+    - TotalCharges
+    - SeniorCitizen
+  categorical:
+    - gender
+    - Partner
+    - Dependents
+    - PhoneService
+    - MultipleLines
+    - InternetService
+    - OnlineSecurity
+    - OnlineBackup
+    - DeviceProtection
+    - TechSupport
+    - StreamingTV
+    - StreamingMovies
+    - Contract
+    - PaperlessBilling
+    - PaymentMethod
+
+models:
+  logistic_regression:
+    C: 1.0
+    max_iter: 2000
+    class_weight: balanced
+  random_forest:
+    n_estimators: 150
+    max_depth: 12
+    min_samples_split: 4
+    min_samples_leaf: 2
+    class_weight: balanced
+    n_jobs: -1
+  xgboost:
+    n_estimators: 200
+    max_depth: 4
+    learning_rate: 0.08
+    subsample: 0.85
+    colsample_bytree: 0.85
+    min_child_weight: 3
+    eval_metric: logloss
+
+promotion:
+  min_f1: 0.50
+  min_roc_auc: 0.70
+  require_f1_improvement: true
+  min_f1_delta: 0.0
+
+drift:
+  threshold: 0.35
+  numerical_stattest: psi
+  categorical_stattest: jensenshannon
+  min_inference_rows: 30
+
+serving:
+  probability_threshold: 0.5

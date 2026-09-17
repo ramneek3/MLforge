@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.venv
+mlruns
+mlartifacts
+node_modules
+frontend/dist
+.git
+.pytest_cache
+test_mlforge.db
