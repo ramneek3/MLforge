@@ -1,0 +1,19 @@
+# Render Blueprint for the MLForge API (free tier).
+# Dashboard → New → Blueprint → pick this repo. The frontend stays on Vercel.
+services:
+  - type: web
+    name: mlforge-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: API_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://mlforge-omega.vercel.app
+      - key: LOG_LEVEL
+        value: INFO

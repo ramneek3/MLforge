@@ -1,0 +1,26 @@
+# Single-container image for Render's free tier.
+# No separate MLflow server or Postgres: MLflow uses a local file store and the
+# app uses SQLite. A first model is trained at build time so the dashboard has a
+# production model as soon as the container starts.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+
+COPY backend /app/backend
+COPY ml /app/ml
+COPY pyproject.toml /app/pyproject.toml
+
+ENV PYTHONPATH=/app \
+    APP_ENV=production \
+    MLFLOW_TRACKING_URI=file:///app/mlruns \
+    DATABASE_URL=sqlite:////app/mlforge.db
+
+RUN python -m ml.src.ingest && python -m ml.src.train
+
+EXPOSE 8000
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

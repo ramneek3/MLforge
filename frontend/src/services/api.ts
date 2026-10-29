@@ -1,5 +1,16 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const API_KEY = import.meta.env.VITE_API_KEY || "changeme-admin-api-key";
+const ADMIN_KEY_STORAGE = "mlforge-admin-key";
+
+// The admin key is never bundled into production builds: anything prefixed VITE_ is public.
+// Local dev can still set VITE_API_KEY; otherwise the user is asked once per tab.
+function adminKey(): string | null {
+  if (import.meta.env.DEV && import.meta.env.VITE_API_KEY) return import.meta.env.VITE_API_KEY;
+  const stored = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+  if (stored) return stored;
+  const entered = window.prompt("Admin API key (required to train or promote models)")?.trim();
+  if (entered) sessionStorage.setItem(ADMIN_KEY_STORAGE, entered);
+  return entered || null;
+}
 
 function errorMessage(detail: unknown, fallback: string): string {
   if (typeof detail === "string") return detail;
@@ -13,10 +24,13 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
     headers["Content-Type"] = "application/json";
   }
   if (auth) {
-    headers["X-API-Key"] = API_KEY;
+    const key = adminKey();
+    if (!key) throw new Error("Admin API key required.");
+    headers["X-API-Key"] = key;
   }
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
+    if (auth && response.status === 401) sessionStorage.removeItem(ADMIN_KEY_STORAGE);
     const body = await response.json().catch(() => ({ detail: response.statusText }));
     throw new Error(errorMessage(body.detail, "Request failed"));
   }
